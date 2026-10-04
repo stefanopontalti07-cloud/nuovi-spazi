@@ -1,0 +1,5 @@
+User-agent: *
+# PROTOTIPO: chiuso ai motori finche' non c'e' il si' del cliente.
+# Al lancio: "Allow: /", la riga Sitemap qui sotto senza #, e togliere il meta robots noindex dalle pagine.
+Disallow: /
+# Sitemap: https://stefanopontalti07-cloud.github.io/nuovi-spazi/sitemap.xml
