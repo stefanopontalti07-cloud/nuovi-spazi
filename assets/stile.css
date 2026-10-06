@@ -27,6 +27,11 @@
   --linea: #DCE2E7;
   --carta: #FFFFFF;
   --su-scuro: #C3CFDA;           /* testo secondario sul fondo inchiostro: 10,4:1 */
+  --fondo: #E3EFF9;              /* le fasce chiare: il cielo del logo schiarito (testo tenue 5,3:1) */
+  --fondo-linea: #C6D9E8;        /* filetti sulle fasce chiare */
+  --mare: #005993;               /* la fascia "vendere": il blu del logo scurito (bianco 7,4:1; 4,7:1 sopra una curva) */
+  --ombra: 0 1px 2px rgba(14, 34, 51, .07), 0 2px 8px rgba(14, 34, 51, .06);
+  --ombra-su: 0 2px 4px rgba(14, 34, 51, .08), 0 6px 8px rgba(14, 34, 51, .08);
 
   --sans: "Encode Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
@@ -39,6 +44,15 @@
   --ease-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* curve:inizio — scritto da curve.py, non a mano */
+:root {
+  --carta-proporzione: 1792 / 1280;    /* assets/curve.svg: 1792x1280 pixel di terreno, ~27 m l'uno */
+  --carta-alto: 0.7143;            /* altezza della carta / larghezza */
+  --duomo-x: 0.5048; --duomo-y: 0.4175;       /* piazza Duomo sulla carta (frazione) */
+  --agenzia-x: 0.5090; --agenzia-y: 0.4480;     /* via Vittorio Veneto 118 */
+}
+/* curve:fine */
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -84,8 +98,48 @@ button { font: inherit; color: inherit; }
 .bottone svg { width: 20px; height: 20px; flex: none; }
 .azioni { display: flex; flex-wrap: wrap; gap: 12px; }
 
+/* ---------- fasce e carta ----------
+   Le fasce chiare hanno il cielo del logo; sopra, dove serve, la "carta": le curve di livello vere intorno a
+   Trento (assets/curve.svg, generata da curve.py), usate come maschera così il colore lo decide la fascia.
+   Ogni riquadro .carta dice dove far cadere un punto della carta (--px/--py, piazza Duomo di serie)
+   con --fx/--fy, in frazione della sua larghezza e altezza: il segnaposto lì sopra cade sul punto giusto.
+   Di serie --fx/--fy = --px/--py, e la carta copre sempre tutto il riquadro; chi li sposta (vendere, mappa)
+   deve allargare --l abbastanza, altrimenti si vede dove finisce la carta. */
+.fascia { background: var(--fondo); }
+.carta {
+  position: relative; isolation: isolate;
+  --px: var(--duomo-x); --py: var(--duomo-y); --fx: var(--px); --fy: var(--py);
+  --tratto: var(--blu); --forza: .2; --l: max(1792px, 130vw);
+  --sfuma: linear-gradient(#000, #000);
+  --tenue: #4A5763;              /* sopra la carta il grigio è un filo più scuro: 4,9:1 anche dove una curva passa sotto il testo */
+}
+@supports (mask-image: none) or (-webkit-mask-image: none) {
+  .carta::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--tratto); opacity: var(--forza);
+    --x: calc(var(--fx) * 100% + (var(--fx) - var(--px)) * var(--l));
+    --y: calc(var(--fy) * 100% + (var(--fy) - var(--py)) * var(--l) * var(--carta-alto));
+    -webkit-mask-image: url(curve.svg), var(--sfuma);
+            mask-image: url(curve.svg), var(--sfuma);
+    -webkit-mask-size: var(--l) calc(var(--l) * var(--carta-alto)), 100% 100%;
+            mask-size: var(--l) calc(var(--l) * var(--carta-alto)), 100% 100%;
+    -webkit-mask-position: var(--x) var(--y), 0 0;
+            mask-position: var(--x) var(--y), 0 0;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-composite: source-in; mask-composite: intersect;
+  }
+}
+/* la "o" del logo piantata sulla carta: il pallino rosso cade esattamente su --fx/--fy */
+.segnaposto {
+  position: absolute; z-index: 1; left: calc(var(--fx) * 100%); top: calc(var(--fy) * 100%); margin: 0;
+  display: flex; align-items: center; gap: 8px; transform: translate(-27.7px, -11.7px); pointer-events: none;
+  font: 600 .95rem/1 var(--sans); letter-spacing: .01em; white-space: nowrap;
+}
+.segnaposto svg { width: 40px; height: 40px; flex: none; }
+.segnaposto .morso { fill: var(--sotto, var(--carta)); }
+
 /* ---------- testata ---------- */
-.testata { border-bottom: 1px solid var(--linea); background: var(--carta); position: relative; z-index: 20; }
+.testata { background: var(--carta); box-shadow: 0 1px 0 rgba(14, 34, 51, .07); position: relative; z-index: 20; }
 .testata__dentro { display: flex; align-items: center; gap: 12px; min-height: 68px; }
 .marchio { display: block; flex: none; line-height: 0; }
 .marchio svg { width: clamp(132px, 38vw, 176px); height: auto; }
@@ -113,6 +167,12 @@ button { font: inherit; color: inherit; }
 }
 .menu-tel__pannello a { padding: 14px 0; border-bottom: 1px solid var(--linea); font-size: 1.05rem; background: none; }
 .menu-tel__pannello a:last-child { border-bottom: 0; }
+@media (max-width: 359px) {
+  .testata__dentro { gap: 8px; }
+  .marchio svg { width: 108px; }
+  .testata__chiama { padding-inline: 12px; }
+  .menu-tel > summary { padding-inline: 10px; gap: 6px; }
+}
 @media (min-width: 960px) {
   .marchio svg { width: 208px; }
   .menu { display: flex; }
@@ -126,8 +186,9 @@ button { font: inherit; color: inherit; }
 .apertura h1 { font-size: clamp(2.05rem, 1.15rem + 3.3vw, 3.55rem); max-width: 14ch; }
 .apertura__sotto { margin-top: 18px; font-size: clamp(1.06rem, 1rem + .3vw, 1.2rem); color: var(--tenue); max-width: 44ch; }
 .apertura .azioni { margin-top: 28px; }
+.carta--apertura { --sfuma: linear-gradient(to bottom, #000 30%, transparent 97%); }
 .apertura__foto { margin: 0; }
-.apertura__foto a.foto-link { display: block; overflow: hidden; border-radius: 2px; background: var(--velo); }
+.apertura__foto a.foto-link { display: block; overflow: hidden; border-radius: 4px; background: var(--fondo); box-shadow: var(--ombra-su); }
 .apertura__foto img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
 .apertura__didascalia {
   display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px;
@@ -164,32 +225,38 @@ button { font: inherit; color: inherit; }
 .filtri::-webkit-scrollbar { display: none; }
 .filtro {
   flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 16px;
-  border: 0; border-radius: 999px; cursor: pointer; background: var(--velo); color: var(--inchiostro);
-  font: 500 .95rem/1 var(--sans); white-space: nowrap;
+  border: 0; border-radius: 999px; cursor: pointer; background: var(--carta); color: var(--inchiostro);
+  font: 500 .95rem/1 var(--sans); white-space: nowrap; box-shadow: 0 1px 2px rgba(14, 34, 51, .06);
   transition: background-color 200ms var(--ease-quart), color 200ms var(--ease-quart), transform 150ms var(--ease-quart);
 }
 .filtro span { color: var(--tenue); font-variant-numeric: tabular-nums; transition: color 200ms; }
-.filtro:hover { background: #E3E9EE; }
+.filtro:hover { background: #F4F8FC; }
 .filtro:active { transform: scale(.96); }
 .filtro[aria-pressed="true"] { background: var(--inchiostro); color: #fff; }
 .filtro[aria-pressed="true"] span { color: var(--su-scuro); }
 .filtro[aria-pressed="true"]::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rosso); }
 @media (min-width: 720px) { .filtri { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; } }
 
-.griglia { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 44px 28px; grid-template-columns: 1fr; }
+.griglia { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 28px 24px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1040px) { .griglia { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .griglia.entra .scheda:not([hidden]) { animation: entra 220ms var(--ease-quart) both; animation-delay: calc(var(--i, 0) * 28ms); }
 @keyframes entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .griglia.entra .scheda { animation: none !important; } }
 
+/* le schede sono fogli bianchi appoggiati sulla fascia: foto in alto, testo sotto */
 .scheda { min-width: 0; }
-.scheda__link { display: block; color: inherit; text-decoration: none; }
-.scheda__foto { position: relative; overflow: hidden; border-radius: 2px; background: var(--velo); aspect-ratio: 4 / 3; }
+.scheda__link {
+  display: flex; flex-direction: column; height: 100%; color: inherit; text-decoration: none;
+  background: var(--carta); border-radius: 4px; overflow: hidden; box-shadow: var(--ombra);
+  transition: box-shadow 250ms var(--ease-quart), transform 250ms var(--ease-quart);
+}
+.scheda__link:hover { box-shadow: var(--ombra-su); transform: translateY(-2px); }
+.scheda__foto { position: relative; overflow: hidden; background: var(--fondo); aspect-ratio: 4 / 3; }
 .scheda__foto img { width: 100%; height: 100%; object-fit: cover; transition: transform 500ms var(--ease-quart); }
 .scheda__link:hover .scheda__foto img { transform: scale(1.035); }
-.scheda__riga { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-top: 14px; font-family: var(--sans); }
-.scheda__riga + .scheda__riga { margin-top: 6px; }
+.scheda__riga { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-top: 14px; padding-inline: 16px; font-family: var(--sans); }
+.scheda__riga + .scheda__riga { margin-top: auto; padding-top: 6px; padding-bottom: 16px; }   /* zona e misure in fondo, allineate fra le schede */
 .scheda__titolo { font: 600 1.06rem/1.3 var(--sans); font-stretch: 100%; letter-spacing: 0; text-wrap: pretty; }
 .scheda__link:hover .scheda__titolo { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .scheda__prezzo { flex: none; font: 600 1.06rem/1.3 var(--sans); font-stretch: 112%; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -204,33 +271,35 @@ button { font: inherit; color: inherit; }
 .etichetta--scura { background: var(--inchiostro); color: #fff; }
 .etichetta--venduto { background: var(--rosso); color: #fff; }
 .scheda--venduto .scheda__foto img { filter: grayscale(.6) brightness(.92); }
-.scheda--prova .scheda__foto { outline: 2px dashed var(--blu); outline-offset: 3px; }
+.scheda--prova .scheda__link { outline: 2px dashed var(--blu); outline-offset: 3px; }
 /* annuncio senza foto (l'agenzia le mostra solo su appuntamento) */
 .scheda__foto--vuota { display: grid; place-items: center; text-align: center; padding: 24px; }
 .scheda__foto--vuota svg { width: 96px; height: 96px; }
 .scheda__foto--vuota p { margin-top: 12px; font: 500 .92rem/1.4 var(--sans); color: var(--tenue); max-width: 24ch; }
 
-/* ---------- fascia scura: vendere ---------- */
-.vendere { position: relative; overflow: hidden; background: var(--inchiostro); color: #fff; }
-.vendere .giro { position: relative; z-index: 1; }
+/* ---------- fascia blu: vendere (la carta con l'agenzia segnata sopra) ---------- */
+.vendere {
+  background: var(--mare); color: #fff;
+  --tratto: var(--cielo); --forza: .3; --px: var(--agenzia-x); --py: var(--agenzia-y); --sotto: var(--mare);
+  --fx: .74; --fy: .5; --l: max(1792px, 150vw);
+}
 .vendere h2 { color: #fff; max-width: 15ch; }
-.vendere p { margin-top: 20px; color: var(--su-scuro); font-size: clamp(1.06rem, 1rem + .3vw, 1.2rem); max-width: 46ch; }
+.vendere p { margin-top: 20px; color: #fff; font-size: clamp(1.06rem, 1rem + .3vw, 1.2rem); max-width: 46ch; }
 .vendere .azioni { margin-top: 32px; }
-.vendere__cerchio { position: absolute; width: clamp(300px, 52vw, 660px); height: auto; right: -14%; bottom: -36%; opacity: .9; pointer-events: none; }
-@media (max-width: 719px) { .vendere__cerchio { width: 300px; right: -150px; top: -110px; bottom: auto; opacity: .55; } }
+.vendere .segnaposto { color: #fff; }
+@media (max-width: 719px) { .vendere { --fx: .6; --fy: .86; --l: 2100px; padding-bottom: 176px; } }
 
 /* ---------- agenzia ---------- */
 .agenzia__griglia { display: grid; gap: 40px; margin-top: 28px; }
 .agenzia__testo p + p { margin-top: 1em; }
 .agenzia__testo { max-width: 62ch; font-size: 1.12rem; }
-.biglietto { background: var(--velo); padding: 24px; border-radius: 2px; align-self: start; }
+.biglietto { background: var(--fondo); padding: 24px; border-radius: 4px; align-self: start; }
 .biglietto dl { margin: 0; display: grid; gap: 14px; }
 .biglietto dt { font: 500 .85rem/1.3 var(--sans); color: var(--tenue); }
 .biglietto dd { margin: 2px 0 0; font: 500 1.02rem/1.4 var(--sans); }
 @media (min-width: 960px) { .agenzia__griglia { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: 72px; } }
 
-/* ---------- contatti ---------- */
-.contatti { border-top: 1px solid var(--linea); }
+/* ---------- contatti (su fascia chiara) ---------- */
 .contatti__griglia { display: grid; gap: 40px; margin-top: 28px; }
 .indirizzo { font: 500 1.2rem/1.45 var(--sans); }
 .orari { margin: 24px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 24px; font: 400 1rem/1.4 var(--sans); }
@@ -243,24 +312,36 @@ button { font: inherit; color: inherit; }
 @media (min-width: 960px) { .contatti__griglia { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 64px; } }
 
 /* mappa a due click (automazioni/prodotti/privacy-sito) */
-.due-click { position: relative; min-height: 340px; border-radius: 2px; overflow: hidden; display: grid; place-items: center;
-  text-align: center; padding: 24px; background: var(--velo); }
+.due-click { position: relative; min-height: 340px; border-radius: 4px; overflow: hidden; display: grid; place-items: center;
+  text-align: center; padding: 24px; background: var(--carta); box-shadow: var(--ombra); }
+/* prima del clic il riquadro mostra la nostra carta, con la "o" sull'agenzia: la mappa di Google arriva solo dopo */
+.due-click.carta { --fx: .5; --fy: .25; --px: var(--agenzia-x); --py: var(--agenzia-y); align-items: end; padding-top: 120px; }
 .due-click__indirizzo { font: 600 1.1rem/1.4 var(--sans); margin: 0 0 16px; }
 .due-click__bottone { min-height: 46px; }
 .due-click__nota { font: 400 .88rem/1.5 var(--sans); color: var(--tenue); max-width: 42ch; margin: 14px auto 0; }
 .due-click__nota a { color: var(--blu-testo); }
 .due-click iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-/* ---------- piede ---------- */
-.piede { border-top: 1px solid var(--linea); padding-block: 48px 40px; font: 400 .92rem/1.6 var(--sans); color: var(--tenue); }
+/* ---------- piede (scuro, logo in negativo: "nuovi" bianco) ---------- */
+.piede { background: var(--inchiostro); padding-block: 56px 44px; font: 400 .92rem/1.6 var(--sans); color: var(--su-scuro); }
 .piede__dentro { display: grid; gap: 22px; }
 .piede .marchio svg { width: 150px; }
-.piede a { color: var(--inchiostro); }
+.piede .logo path[fill="#007CC3"] { fill: #fff; }
+.piede a { color: #fff; }
 .piede__link { display: flex; flex-wrap: wrap; gap: 6px 22px; }
 .piede__link a { display: inline-block; padding: 4px 0; }
 @media (min-width: 960px) { .piede__dentro { grid-template-columns: 1fr 1.4fr auto; align-items: start; gap: 48px; } .piede__link { flex-direction: column; } }
 
 /* ---------- pagina dell'immobile ---------- */
+/* la testa (titolo, prezzo, foto) sta sulla fascia chiara; la fascia finisce a metà delle foto, il resto è bianco */
+.immobile__testa {
+  --taglio: calc(56px + clamp(240px, 58vh, 620px) * .36);
+  --forza: .18;
+  --sfuma: linear-gradient(to bottom, #000 0, #000 calc(100% - var(--taglio) - 220px), transparent calc(100% - var(--taglio)));
+  background: linear-gradient(to bottom, var(--fondo) calc(100% - var(--taglio)), var(--carta) 0);
+  padding-bottom: 4px;
+}
+@media (max-width: 719px) { .immobile__testa { --taglio: calc(56px + (100vw - 2 * var(--margine) - 24px) * .27); } }
 .indietro { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 12px; font: 500 .95rem/1 var(--sans); color: var(--inchiostro); text-decoration: none; }
 .indietro:hover { text-decoration: underline; }
 .immobile__capo { padding-top: 8px; display: grid; gap: 14px; }
@@ -270,10 +351,10 @@ button { font: inherit; color: inherit; }
 .immobile__prezzo strong { font: 650 clamp(1.5rem, 1.2rem + 1vw, 2rem)/1.1 var(--sans); font-stretch: 112%; font-variant-numeric: tabular-nums; }
 .immobile__prezzo span { font: 500 1rem/1.3 var(--sans); color: var(--tenue); }
 .immobile__capo .etichette { position: static; }
-.immobile__capo .etichetta { background: var(--velo); }
+.immobile__capo .etichetta { background: var(--carta); }
 .immobile__capo .etichetta--venduto { background: var(--rosso); color: #fff; }
 .immobile__capo .etichetta--scura { background: var(--inchiostro); color: #fff; }
-.salti { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--linea); }
+.salti { display: flex; flex-wrap: wrap; gap: 4px 22px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--fondo-linea); }
 .salti a { font: 500 .95rem/1 var(--sans); color: var(--inchiostro); padding: 10px 0; text-decoration: none; }
 .salti a:hover { text-decoration: underline; }
 
@@ -283,7 +364,7 @@ button { font: inherit; color: inherit; }
   padding-inline: var(--margine); scroll-padding-inline: var(--margine); scrollbar-width: thin;
 }
 .galleria__foto { flex: 0 0 auto; margin: 0; scroll-snap-align: start; position: relative; }
-.galleria__foto button { display: block; padding: 0; border: 0; background: var(--velo); cursor: zoom-in; border-radius: 2px; overflow: hidden; }
+.galleria__foto button { display: block; padding: 0; border: 0; background: var(--velo); cursor: zoom-in; border-radius: 4px; overflow: hidden; box-shadow: var(--ombra); }
 .galleria__foto img { height: clamp(240px, 58vh, 620px); width: auto; max-width: none; }
 .galleria__foto figcaption { font: 400 .85rem/1.4 var(--sans); color: var(--tenue); margin-top: 8px; max-width: 60ch; }
 @media (max-width: 719px) {
@@ -306,7 +387,7 @@ button { font: inherit; color: inherit; }
 .galleria--piena { position: fixed; inset: 0; z-index: 60; background: #0B1620; margin: 0; display: flex; flex-direction: column; }
 .galleria--piena .galleria__binario { flex: 1; padding: 0; gap: 0; scroll-padding: 0; align-items: center; }
 .galleria--piena .galleria__foto { width: 100vw; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 12px 12px; }
-.galleria--piena .galleria__foto button { background: none; cursor: default; width: auto; aspect-ratio: auto; max-height: 100%; }
+.galleria--piena .galleria__foto button { background: none; cursor: default; width: auto; aspect-ratio: auto; max-height: 100%; box-shadow: none; border-radius: 0; }
 .galleria--piena .galleria__foto img { width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 170px); object-fit: contain; }
 .galleria--piena .galleria__foto figcaption { color: #B9C6D2; text-align: center; }
 .galleria--piena .galleria__comandi { justify-content: center; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); margin: 0; }
@@ -318,7 +399,7 @@ button { font: inherit; color: inherit; }
 .galleria--piena .galleria__grande { display: none; }
 body.blocca { overflow: hidden; }
 
-.immobile__corpo { display: grid; gap: 40px; margin-top: 40px; }
+.immobile__corpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; margin-top: 40px; }
 .immobile__corpo h2 { font-size: clamp(1.3rem, 1.1rem + .7vw, 1.65rem); }
 .immobile__corpo section + section { margin-top: 48px; }
 .dati dl { margin: 14px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
@@ -344,6 +425,19 @@ body.blocca { overflow: hidden; }
 .scala .c7 { background: #F4B41B; color: var(--inchiostro); } .scala .c8 { background: #E87513; color: var(--inchiostro); }
 .scala .c9 { background: #C23A12; } .scala .c10 { background: #A8131B; }
 .energia__testo { margin-top: 14px; font: 400 1rem/1.5 var(--sans); }
+/* la zona: un ritaglio della carta delle curve con la "o" sull'immobile; si tocca e apre OpenStreetMap */
+.zona-carta {
+  display: block; margin-top: 18px; max-width: 680px; height: clamp(210px, 42vw, 300px); border-radius: 4px; overflow: hidden;
+  /* altezza fissa, non aspect-ratio + min-height: così l'altezza minima diventava una larghezza minima di 480 px e il telefono rimpiccioliva la pagina */
+  background: var(--fondo); color: var(--inchiostro); text-decoration: none;
+  --fx: .5; --fy: .44; --l: 2100px; --forza: .26; --sotto: var(--fondo);
+}
+.zona-carta__testo {
+  position: absolute; left: 12px; bottom: 12px; padding: 9px 12px; border-radius: 2px; background: var(--carta); box-shadow: var(--ombra);
+  font: 500 .92rem/1.3 var(--sans); color: var(--blu-testo); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em;
+}
+.zona-carta__testo small { font-size: .88em; color: var(--tenue); text-decoration: none; }
+.zona-carta:hover .zona-carta__testo { text-decoration-thickness: 2px; }
 
 .contatto-immobile { background: var(--inchiostro); color: #fff; padding: 26px 24px; border-radius: 2px; align-self: start; }
 .contatto-immobile h2 { color: #fff; font-size: 1.45rem; }
@@ -360,7 +454,7 @@ body.blocca { overflow: hidden; }
   .immobile__corpo { grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; }
   .contatto-immobile { position: sticky; top: 24px; }
 }
-.altri { border-top: 1px solid var(--linea); margin-top: var(--stacco); }
+.altri { margin-top: var(--stacco); }
 .barra-contatto { display: none; }
 @media (max-width: 959px) {
   .barra-contatto {
@@ -371,7 +465,8 @@ body.blocca { overflow: hidden; }
 }
 
 /* ---------- area riservata (prova) ---------- */
-.avviso-prova { margin-top: 20px; padding: 14px 16px; background: #E8F4FC; border-radius: 2px; font: 400 .95rem/1.5 var(--sans); }
+.avviso-prova { margin-top: 20px; padding: 14px 16px; background: var(--carta); border-radius: 4px; box-shadow: var(--ombra); font: 400 .95rem/1.5 var(--sans); }
+.testa { padding-bottom: clamp(32px, 5vw, 56px); --forza: .18; --sfuma: linear-gradient(to bottom, #000 20%, transparent); }
 .avviso-prova strong { font-weight: 600; }
 .gestione h1 { font-size: clamp(1.8rem, 1.2rem + 2vw, 2.6rem); margin-top: 28px; }
 .gestione__intro { margin-top: 12px; color: var(--tenue); max-width: 52ch; }
@@ -423,6 +518,10 @@ a.interruttore { text-decoration: none; }
 
 /* ---------- pagine di testo (privacy, 404) ---------- */
 .testo-lungo { max-width: 70ch; padding-block: 40px 80px; }
+.testa .testo-lungo { padding-block: 40px 0; }
+.testa--sola { padding-bottom: 0; }
+.testa--sola .testo-lungo { padding-block: 40px 96px; }
+.gestione__corpo { padding-bottom: 72px; }
 .testo-lungo h1 { font-size: clamp(1.9rem, 1.3rem + 2vw, 2.6rem); }
 .testo-lungo h2 { font-size: 1.25rem; margin-top: 40px; }
 .testo-lungo h3 { font-size: 1.05rem; font-stretch: 100%; margin-top: 24px; }

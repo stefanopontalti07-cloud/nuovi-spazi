@@ -110,11 +110,11 @@
     }
     var testoWa = 'Buongiorno, mi interessa l’immobile «' + a.titolo + '» che ho visto sul vostro sito.';
     var wa = 'https://wa.me/' + WA + '?text=' + encodeURIComponent(testoWa);
-    return '<div class="giro"><a class="indietro" href="./#immobili">← Tutti gli immobili</a>' +
+    return '<div class="fascia carta immobile__testa"><div class="giro"><a class="indietro" href="./#immobili">← Tutti gli immobili</a>' +
       '<header class="immobile__capo"><h1>' + esc(a.titolo) + '</h1><p class="zona">' + esc(a.zona) + '</p>' +
       '<p class="immobile__prezzo"><strong>' + esc(prezzoTesto(a)) + '</strong> <span>' + (a.contratto === 'affitto' ? 'in affitto' : 'in vendita') + '</span></p>' +
       (a.venduto ? '<p class="etichette"><span class="etichetta etichetta--venduto">Venduto</span></p>' : '') + '</header></div>' +
-      galleria +
+      galleria + '</div>' +
       '<div class="giro immobile__corpo"><div>' +
       '<section class="dati"><h2>In breve</h2><dl>' + dati + '</dl></section>' +
       (descr ? '<section class="descrizione"><h2>Descrizione</h2>' + descr + '</section>' : '') + energia +
